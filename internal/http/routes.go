@@ -34,6 +34,12 @@ func (a *App) Routes() http.Handler {
 	mux.HandleFunc("/api/users", a.authMiddleware(a.handleUsers))
 	mux.HandleFunc("/api/incidents", a.authMiddleware(a.handleIncidents))
 	mux.HandleFunc("/api/incidents/close", a.authMiddleware(a.handleCloseIncident))
+	mux.HandleFunc("/api/incidents/status", a.authMiddleware(a.handleChangeStatus))
+	mux.HandleFunc("/api/incidents/comments", a.authMiddleware(a.handleIncidentComments))
+	mux.HandleFunc("/api/incidents/history", a.authMiddleware(a.handleIncidentHistory))
+	mux.HandleFunc("/api/incidents/update", a.authMiddleware(a.adminOnly(a.handleUpdateIncident)))
+	mux.HandleFunc("/api/incidents/delete", a.authMiddleware(a.adminOnly(a.handleDeleteIncident)))
+	mux.HandleFunc("/api/notifications", a.authMiddleware(a.handleNotifications))
 	mux.HandleFunc("/api/analytics", a.authMiddleware(a.handleAnalytics))
 	mux.HandleFunc("/api/tasks", a.authMiddleware(a.handleTasks))
 

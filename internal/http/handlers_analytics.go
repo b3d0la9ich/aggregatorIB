@@ -6,6 +6,13 @@ import (
 	"aggregatorIB/internal/db"
 )
 
+type analyticsResponse struct {
+	Total    int64 `json:"total"`
+	Open     int64 `json:"open"`
+	Critical int64 `json:"critical"`
+	Closed   int64 `json:"closed"`
+}
+
 func (a *App) handleAnalytics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "метод не поддерживается"})
@@ -13,44 +20,52 @@ func (a *App) handleAnalytics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	claims := userFromContext(r.Context())
-	base := a.db.Model(&db.Incident{})
-	if claims.Role != "admin" {
-		base = base.Where(&db.Incident{AssignedToID: claims.UserID})
+	if claims == nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "необходима авторизация"})
+		return
 	}
 
-	var total, openCount, criticalCount, closedCount int64
-	base.Count(&total)
-	base.Where(&db.Incident{Status: "open"}).Count(&openCount)
-	base.Where(&db.Incident{Severity: "Критическое"}).Count(&criticalCount)
-	base.Where(&db.Incident{Status: "closed"}).Count(&closedCount)
+	var total int64
+	var inProgress int64
+	var critical int64
+	var closed int64
 
-	writeJSON(w, http.StatusOK, map[string]int64{
-		"total":    total,
-		"open":     openCount,
-		"critical": criticalCount,
-		"closed":   closedCount,
+	totalQuery := a.db.Model(&db.Incident{})
+	inProgressQuery := a.db.Model(&db.Incident{})
+	criticalQuery := a.db.Model(&db.Incident{})
+	closedQuery := a.db.Model(&db.Incident{})
+
+	if claims.Role != "admin" {
+		totalQuery = totalQuery.Where("assigned_to_id = ?", claims.UserID)
+		inProgressQuery = inProgressQuery.Where("assigned_to_id = ?", claims.UserID)
+		criticalQuery = criticalQuery.Where("assigned_to_id = ?", claims.UserID)
+		closedQuery = closedQuery.Where("assigned_to_id = ?", claims.UserID)
+	}
+
+	if err := totalQuery.Count(&total).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "не удалось получить статистику"})
+		return
+	}
+
+	if err := inProgressQuery.Where("status = ?", "in_progress").Count(&inProgress).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "не удалось получить статистику по активным инцидентам"})
+		return
+	}
+
+	if err := criticalQuery.Where("severity = ?", "Критическое").Count(&critical).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "не удалось получить статистику по критическим инцидентам"})
+		return
+	}
+
+	if err := closedQuery.Where("status = ?", "closed").Count(&closed).Error; err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "не удалось получить статистику по закрытым инцидентам"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, analyticsResponse{
+		Total:    total,
+		Open:     inProgress,
+		Critical: critical,
+		Closed:   closed,
 	})
-}
-
-func (a *App) handleTasks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "метод не поддерживается"})
-		return
-	}
-
-	claims := userFromContext(r.Context())
-	var incidents []db.Incident
-	query := a.db.Preload("AssignedTo").Preload("CreatedBy").Order("occurred_at desc")
-	if claims.Role != "admin" {
-		query = query.Where(&db.Incident{AssignedToID: claims.UserID, Status: "open"})
-	} else {
-		query = query.Where(&db.Incident{Status: "open"})
-	}
-
-	if err := query.Find(&incidents).Error; err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "не удалось загрузить задачи"})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, incidents)
 }

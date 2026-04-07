@@ -25,7 +25,7 @@ type Incident struct {
 	Title        string     `gorm:"size:200;not null" json:"title"`
 	Description  string     `gorm:"type:text;not null" json:"description"`
 	Severity     string     `gorm:"size:20;not null" json:"severity"`
-	Status       string     `gorm:"size:20;not null;default:open" json:"status"`
+	Status       string     `gorm:"size:20;not null;default:in_progress" json:"status"`
 	OccurredAt   time.Time  `gorm:"not null" json:"occurred_at"`
 	AssignedToID uint       `gorm:"not null" json:"assigned_to_id"`
 	AssignedTo   User       `gorm:"foreignKey:AssignedToID" json:"assigned_to"`
@@ -36,22 +36,56 @@ type Incident struct {
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
+type IncidentHistory struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	IncidentID uint      `gorm:"index;not null" json:"incident_id"`
+	UserID     uint      `gorm:"not null" json:"user_id"`
+	User       User      `gorm:"foreignKey:UserID" json:"user"`
+	Action     string    `gorm:"size:255;not null" json:"action"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type IncidentComment struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	IncidentID uint      `gorm:"index;not null" json:"incident_id"`
+	UserID     uint      `gorm:"not null" json:"user_id"`
+	User       User      `gorm:"foreignKey:UserID" json:"user"`
+	Text       string    `gorm:"type:text;not null" json:"text"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type Notification struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `gorm:"index;not null" json:"user_id"`
+	User      User      `gorm:"foreignKey:UserID" json:"user"`
+	Text      string    `gorm:"size:255;not null" json:"text"`
+	IsRead    bool      `gorm:"not null;default:false" json:"is_read"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func Open() (*gorm.DB, error) {
 	dsn := buildDSN()
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	database, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	if err := db.AutoMigrate(&User{}, &Incident{}); err != nil {
+	if err := database.AutoMigrate(
+		&User{},
+		&Incident{},
+		&IncidentHistory{},
+		&IncidentComment{},
+		&Notification{},
+	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
 
-	if err := seedAdmin(db); err != nil {
+	if err := seedAdmin(database); err != nil {
 		return nil, err
 	}
 
-	return db, nil
+	return database, nil
 }
 
 func buildDSN() string {

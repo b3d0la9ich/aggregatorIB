@@ -5,6 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Инциденты — AggregatorIB</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .incidents-toolbar {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .incidents-toolbar input,
+        .incidents-toolbar select,
+        .incidents-toolbar button,
+        .comment-box input,
+        .notification-item button,
+        .details-block button {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .incidents-toolbar button,
+        .notification-item button,
+        .details-block button {
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 14px;
+            border: 1px solid #d0d7de;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: #667085;
+            font-size: 14px;
+        }
+
+        .incidents-meta {
+            margin-bottom: 16px;
+            color: #667085;
+        }
+
+        .page-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .notification-list,
+        .history-list,
+        .comments-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .notification-item,
+        .history-item,
+        .comment-item {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .comment-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .comment-box input {
+            flex: 1;
+        }
+
+        .details-block {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #ececec;
+        }
+
+        .sidebar-card {
+            height: fit-content;
+        }
+
+        @media (max-width: 1100px) {
+            .page-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .incidents-toolbar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body class="private-page">
     <div class="mobile-topbar">
@@ -31,12 +145,49 @@
             <div class="page-header">
                 <div>
                     <h1>Список инцидентов</h1>
-                    <p class="muted">Администратор видит все записи, обычный пользователь — только назначенные ему.</p>
+                    <p class="muted">Поиск, фильтрация, сортировка, история действий, комментарии и уведомления.</p>
                 </div>
             </div>
-            <section class="card">
-                <div id="incidents-list" class="incidents-grid"></div>
-            </section>
+
+            <div class="page-grid">
+                <section class="card">
+                    <div class="incidents-toolbar">
+                        <input type="text" id="filter-search" placeholder="Поиск по названию и описанию">
+
+                        <select id="filter-status">
+                            <option value="">Все статусы</option>
+                            <option value="in_progress">В работе</option>
+                            <option value="closed">Закрытые</option>
+                        </select>
+
+                        <select id="filter-severity">
+                            <option value="">Любая важность</option>
+                            <option value="Обычное">Обычное</option>
+                            <option value="Критическое">Критическое</option>
+                        </select>
+
+                        <select id="filter-sort">
+                            <option value="created_desc">Сначала новые</option>
+                            <option value="created_asc">Сначала старые</option>
+                            <option value="occurred_desc">По дате инцидента ↓</option>
+                            <option value="occurred_asc">По дате инцидента ↑</option>
+                            <option value="severity_desc">Сначала критические</option>
+                            <option value="severity_asc">Сначала обычные</option>
+                        </select>
+
+                        <button id="apply-filters-btn" type="button">Применить</button>
+                    </div>
+
+                    <div id="incidents-meta" class="incidents-meta"></div>
+                    <div id="incidents-list" class="incidents-grid"></div>
+                    <div id="pagination" class="pagination"></div>
+                </section>
+
+                <aside class="card sidebar-card">
+                    <h2>Уведомления</h2>
+                    <div id="notifications-list" class="notification-list"></div>
+                </aside>
+            </div>
         </main>
     </div>
     <script src="/static/js/app.js"></script>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Создать инцидент — AggregatorIB</title>
+    <title>Создать / редактировать инцидент — AggregatorIB</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body class="private-page">
@@ -30,13 +30,15 @@
         <main class="content">
             <div class="page-header">
                 <div>
-                    <h1>Создание инцидента</h1>
-                    <p class="muted">Эта страница доступна только администратору.</p>
+                    <h1 id="incident-page-title">Создание инцидента</h1>
+                    <p class="muted">Администратор может создавать и редактировать инциденты.</p>
                 </div>
             </div>
 
             <section class="card">
                 <form id="incident-form">
+                    <input id="incident-id" name="incident_id" type="hidden">
+
                     <label for="title">Название инцидента</label>
                     <input id="title" name="title" type="text" required>
 
@@ -57,7 +59,7 @@
                         <option value="">Выберите пользователя</option>
                     </select>
 
-                    <button type="submit">Создать инцидент</button>
+                    <button type="submit" id="incident-submit-btn">Создать инцидент</button>
                 </form>
                 <div id="incident-message" class="message"></div>
             </section>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создать инцидент — AggregatorIB</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="private-page">
+    <div class="mobile-topbar">
+        <button id="sidebar-toggle" class="sidebar-toggle">Меню</button>
+        <strong id="mobile-login">Пользователь</strong>
+    </div>
+    <div class="dashboard">
+        <aside id="sidebar" class="sidebar">
+            <div class="user-box">
+                <div id="user-avatar" class="avatar">U</div>
+                <div id="user-login">user</div>
+                <div id="user-role" class="muted">Пользователь</div>
+            </div>
+            <nav class="nav-list">
+                <a class="nav-link" href="/dashboard">Личный кабинет</a>
+                <a class="nav-link" href="/incidents">Инциденты</a>
+                <a class="nav-link" href="/incident" data-admin-only="true">Создать инцидент</a>
+                <a class="nav-link" href="/analytics">Аналитика</a>
+                <a class="nav-link" href="#" id="logout-btn">Выход</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Создание инцидента</h1>
+                    <p class="muted">Эта страница доступна только администратору.</p>
+                </div>
+            </div>
+
+            <section class="card">
+                <form id="incident-form">
+                    <label for="title">Название инцидента</label>
+                    <input id="title" name="title" type="text" required>
+
+                    <label for="description">Описание инцидента</label>
+                    <textarea id="description" name="description" required></textarea>
+
+                    <label for="severity">Классификация важности</label>
+                    <select id="severity" name="severity" required>
+                        <option value="Обычное">Обычное</option>
+                        <option value="Критическое">Критическое</option>
+                    </select>
+
+                    <label for="occurred_at">Когда произошел инцидент</label>
+                    <input id="occurred_at" name="occurred_at" type="datetime-local" required>
+
+                    <label for="assigned_to_id">Кто должен просмотреть и закрыть</label>
+                    <select id="assigned_to_id" name="assigned_to_id" required>
+                        <option value="">Выберите пользователя</option>
+                    </select>
+
+                    <button type="submit">Создать инцидент</button>
+                </form>
+                <div id="incident-message" class="message"></div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

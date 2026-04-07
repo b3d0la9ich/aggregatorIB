@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация — AggregatorIB</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-card">
+            <h1>Регистрация</h1>
+            <p class="muted">Создайте аккаунт для доступа к личному кабинету.</p>
+            <form id="register-form">
+                <label for="login">Логин</label>
+                <input id="login" name="login" type="text" required>
+
+                <label for="password">Пароль</label>
+                <input id="password" name="password" type="password" required>
+
+                <label for="password_confirm">Повторите пароль</label>
+                <input id="password_confirm" name="password_confirm" type="password" required>
+
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+            <div id="register-message" class="message"></div>
+            <p class="muted">Уже есть аккаунт? <a href="/login">Войти</a></p>
+        </section>
+    </main>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

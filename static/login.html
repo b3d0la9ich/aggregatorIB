@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход — AggregatorIB</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-card">
+            <h1>Вход</h1>
+            <p class="muted">Введите логин и пароль для входа в систему.</p>
+            <form id="login-form">
+                <label for="login">Логин</label>
+                <input id="login" name="login" type="text" required>
+
+                <label for="password">Пароль</label>
+                <input id="password" name="password" type="password" required>
+
+                <button type="submit">Войти</button>
+            </form>
+            <div id="login-message" class="message"></div>
+            <p class="muted">Еще нет аккаунта? <a href="/register">Регистрация</a></p>
+        </section>
+    </main>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

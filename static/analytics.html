@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналитика — AggregatorIB</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="private-page">
+    <div class="mobile-topbar">
+        <button id="sidebar-toggle" class="sidebar-toggle">Меню</button>
+        <strong id="mobile-login">Пользователь</strong>
+    </div>
+    <div class="dashboard">
+        <aside id="sidebar" class="sidebar">
+            <div class="user-box">
+                <div id="user-avatar" class="avatar">U</div>
+                <div id="user-login">user</div>
+                <div id="user-role" class="muted">Пользователь</div>
+            </div>
+            <nav class="nav-list">
+                <a class="nav-link" href="/dashboard">Личный кабинет</a>
+                <a class="nav-link" href="/incidents">Инциденты</a>
+                <a class="nav-link" href="/incident" data-admin-only="true">Создать инцидент</a>
+                <a class="nav-link" href="/analytics">Аналитика</a>
+                <a class="nav-link" href="#" id="logout-btn">Выход</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Аналитика</h1>
+                    <p class="muted">Сводные показатели по событиям информационной безопасности.</p>
+                </div>
+            </div>
+            <section id="analytics-stats" class="stats-grid"></section>
+        </main>
+    </div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -62,6 +62,16 @@ func (a *App) createIncident(w http.ResponseWriter, r *http.Request) {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Description = strings.TrimSpace(req.Description)
 
+	if len([]rune(req.Title)) > 100 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "название инцидента не должно превышать 100 символов"})
+		return
+	}
+
+	if len([]rune(req.Description)) > 100 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "описание инцидента не должно превышать 100 символов"})
+		return
+	}
+
 	if req.Title == "" || req.Description == "" || req.OccurredAt == "" || req.AssignedToID == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "заполните все поля формы"})
 		return
@@ -232,6 +242,16 @@ func (a *App) handleUpdateIncident(w http.ResponseWriter, r *http.Request) {
 	req.Title = strings.TrimSpace(req.Title)
 	req.Description = strings.TrimSpace(req.Description)
 
+	if len([]rune(req.Title)) > 100 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "название инцидента не должно превышать 100 символов"})
+		return
+	}
+
+	if len([]rune(req.Description)) > 100 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "описание инцидента не должно превышать 100 символов"})
+		return
+	}
+
 	if req.ID == 0 || req.Title == "" || req.Description == "" || req.OccurredAt == "" || req.AssignedToID == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "заполните все поля формы"})
 		return
@@ -251,6 +271,11 @@ func (a *App) handleUpdateIncident(w http.ResponseWriter, r *http.Request) {
 	var incident db.Incident
 	if err := a.db.First(&incident, req.ID).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "инцидент не найден"})
+		return
+	}
+
+	if incident.Status == "closed" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "закрытый инцидент нельзя редактировать"})
 		return
 	}
 
@@ -491,6 +516,12 @@ func (a *App) addIncidentComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Text = strings.TrimSpace(req.Text)
+
+	if len([]rune(req.Text)) > 100 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "комментарий не должен превышать 100 символов"})
+		return
+	}
+
 	if req.IncidentID == 0 || req.Text == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "заполните комментарий"})
 		return
@@ -499,6 +530,11 @@ func (a *App) addIncidentComment(w http.ResponseWriter, r *http.Request) {
 	var incident db.Incident
 	if err := a.db.First(&incident, req.IncidentID).Error; err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "инцидент не найден"})
+		return
+	}
+
+	if incident.Status == "closed" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "для закрытого инцидента нельзя добавлять комментарии"})
 		return
 	}
 

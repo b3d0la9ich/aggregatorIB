@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Создать / редактировать инцидент — AggregatorIB</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .field-hint {
+            margin-top: 4px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #667085;
+        }
+    </style>
 </head>
 <body class="private-page">
     <div class="mobile-topbar">
@@ -40,10 +48,12 @@
                     <input id="incident-id" name="incident_id" type="hidden">
 
                     <label for="title">Название инцидента</label>
-                    <input id="title" name="title" type="text" required>
+                    <input id="title" name="title" type="text" maxlength="100" required>
+                    <div class="field-hint">Максимум 100 символов</div>
 
                     <label for="description">Описание инцидента</label>
-                    <textarea id="description" name="description" required></textarea>
+                    <textarea id="description" name="description" maxlength="100" required></textarea>
+                    <div class="field-hint">Максимум 100 символов</div>
 
                     <label for="severity">Классификация важности</label>
                     <select id="severity" name="severity" required>

@@ -91,10 +91,12 @@ function getStatusClass(status) {
 }
 
 function incidentCard(incident, canClose = false) {
+    const normalizedStatus = String(incident.status || '').trim().toLowerCase();
     const severityClass = incident.severity === 'Критическое' ? 'badge-critical' : 'badge-normal';
-    const statusClass = getStatusClass(incident.status);
-    const statusLabel = getStatusLabel(incident.status);
+    const statusClass = normalizedStatus === 'closed' ? 'badge-closed' : 'badge-open';
+    const statusLabel = normalizedStatus === 'closed' ? 'Закрыт' : 'В работе';
     const isAdmin = currentUser?.role === 'admin';
+    const isClosed = normalizedStatus === 'closed';
 
     return `
         <article class="incident-card">
@@ -110,9 +112,9 @@ function incidentCard(incident, canClose = false) {
             <p><strong>Закрыт:</strong> ${formatDate(incident.closed_at)}</p>
 
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-                ${canClose && incident.status !== 'closed' ? `<button onclick="changeStatus(${incident.id}, 'closed')">Закрыть инцидент</button>` : ''}
+                ${canClose && !isClosed ? `<button onclick="changeStatus(${incident.id}, 'closed')">Закрыть инцидент</button>` : ''}
                 <button onclick="toggleIncidentDetails(${incident.id})">История и комментарии</button>
-                ${isAdmin ? `<button onclick="window.location.href='/incident?id=${incident.id}'">Редактировать</button>` : ''}
+                ${isAdmin && !isClosed ? `<button onclick="window.location.href='/incident?id=${incident.id}'">Редактировать</button>` : ''}
                 ${isAdmin ? `<button onclick="deleteIncident(${incident.id})">Удалить</button>` : ''}
             </div>
 
@@ -124,10 +126,16 @@ function incidentCard(incident, canClose = false) {
                 <div style="margin-top:16px;">
                     <strong>Комментарии</strong>
                     <div id="comments-${incident.id}" class="comments-list"></div>
+                    ${
+                        !isClosed
+                            ? `
                     <div class="comment-box">
-                        <input type="text" id="comment-input-${incident.id}" placeholder="Введите комментарий">
+                        <input type="text" id="comment-input-${incident.id}" placeholder="Введите комментарий (до 100 символов)" maxlength="100">
                         <button onclick="addComment(${incident.id})">Отправить</button>
                     </div>
+                    `
+                            : `<div class="muted" style="margin-top:10px;">Для закрытого инцидента комментарии недоступны.</div>`
+                    }
                 </div>
             </div>
         </article>
@@ -231,6 +239,11 @@ async function addComment(incidentId) {
     const text = input.value.trim();
     if (!text) {
         alert('Введите комментарий');
+        return;
+    }
+
+    if (text.length > 100) {
+        alert('Комментарий не должен превышать 100 символов');
         return;
     }
 
@@ -566,6 +579,11 @@ async function loadIncidentForEdit() {
         const incident = (response.items || [])[0];
         if (!incident) return;
 
+        if (incident.status === 'closed') {
+            window.location.href = '/incidents';
+            return;
+        }
+
         document.getElementById('incident-id').value = incident.id;
         document.getElementById('title').value = incident.title || '';
         document.getElementById('description').value = incident.description || '';
@@ -616,11 +634,24 @@ async function initIncidentForm(user) {
         event.preventDefault();
         clearMessage(message);
 
+        const title = form.title.value.trim();
+        const description = form.description.value.trim();
+
+        if (title.length > 100) {
+            showMessage(message, 'Название инцидента не должно превышать 100 символов', 'error');
+            return;
+        }
+
+        if (description.length > 100) {
+            showMessage(message, 'Описание инцидента не должно превышать 100 символов', 'error');
+            return;
+        }
+
         const incidentId = Number(document.getElementById('incident-id').value);
 
         const payload = {
-            title: form.title.value.trim(),
-            description: form.description.value.trim(),
+            title,
+            description,
             severity: form.severity.value,
             occurred_at: new Date(form.occurred_at.value).toISOString(),
             assigned_to_id: Number(form.assigned_to_id.value),

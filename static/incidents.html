@@ -81,9 +81,32 @@
         .history-item,
         .comment-item {
             padding: 12px;
-            border: 1px solid #e5e7eb;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
-            background: #fff;
+            background: rgba(255, 255, 255, 0.04);
+            color: #f5f7fb;
+        }
+
+        .notification-item {
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+        .notification-item .muted,
+        .history-item .muted,
+        .comment-item .muted {
+            color: #a9b4c7;
+        }
+
+        .notification-item button {
+            margin-top: 10px;
+            background: #38bdf8;
+            color: #062033;
+            border: none;
+            font-weight: 600;
+        }
+
+        .notification-item button:hover {
+            opacity: 0.92;
         }
 
         .comment-box {
@@ -153,7 +176,7 @@
                 <section class="card">
                     <div class="incidents-toolbar">
                         <input type="text" id="filter-search" placeholder="Поиск по названию и описанию">
-
+                        
                         <select id="filter-status">
                             <option value="">Все статусы</option>
                             <option value="in_progress">В работе</option>

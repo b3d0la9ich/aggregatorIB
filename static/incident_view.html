@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карточка инцидента — AggregatorIB</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .incident-view-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .incident-meta {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .incident-meta-row {
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .incident-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .history-list,
+        .comments-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .history-item,
+        .comment-item {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .comment-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .comment-box input {
+            flex: 1;
+            min-width: 220px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 1000px) {
+            .incident-view-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="private-page">
+    <div class="mobile-topbar">
+        <button id="sidebar-toggle" class="sidebar-toggle">Меню</button>
+        <strong id="mobile-login">Пользователь</strong>
+    </div>
+
+    <div class="dashboard">
+        <aside id="sidebar" class="sidebar">
+            <div class="user-box">
+                <div id="user-avatar" class="avatar">U</div>
+                <div id="user-login">user</div>
+                <div id="user-role" class="muted">Пользователь</div>
+            </div>
+            <nav class="nav-list">
+                <a class="nav-link" href="/dashboard">Личный кабинет</a>
+                <a class="nav-link" href="/incidents">Инциденты</a>
+                <a class="nav-link" href="/incident" data-admin-only="true">Создать инцидент</a>
+                <a class="nav-link" href="/analytics">Аналитика</a>
+                <a class="nav-link" href="#" id="logout-btn">Выход</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <a class="back-link" href="/incidents">← Назад к списку инцидентов</a>
+
+            <div class="page-header">
+                <div>
+                    <h1 id="incident-view-title">Карточка инцидента</h1>
+                    <p class="muted">Подробная информация, история изменений и комментарии.</p>
+                </div>
+            </div>
+
+            <div class="incident-view-grid">
+                <section class="card">
+                    <div id="incident-view-content">
+                        <div class="empty">Загрузка инцидента...</div>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2>История действий</h2>
+                    <div id="incident-view-history" class="history-list"></div>
+                </section>
+            </div>
+
+            <section class="card" style="margin-top: 20px;">
+                <h2>Комментарии</h2>
+                <div id="incident-view-comments" class="comments-list"></div>
+                <div id="incident-view-comment-box"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

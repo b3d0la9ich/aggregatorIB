@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Журнал аудита — AggregatorIB</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .audit-toolbar {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .audit-toolbar input,
+        .audit-toolbar select,
+        .audit-toolbar button {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .audit-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .audit-item {
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .audit-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .audit-chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            font-size: 13px;
+        }
+
+        .pagination {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 14px;
+            border: 1px solid #d0d7de;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            color: #667085;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .audit-toolbar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="private-page">
+    <div class="mobile-topbar">
+        <button id="sidebar-toggle" class="sidebar-toggle">Меню</button>
+        <strong id="mobile-login">Пользователь</strong>
+    </div>
+
+    <div class="dashboard">
+        <aside id="sidebar" class="sidebar">
+            <div class="user-box">
+                <div id="user-avatar" class="avatar">U</div>
+                <div id="user-login">user</div>
+                <div id="user-role" class="muted">Пользователь</div>
+            </div>
+            <nav class="nav-list">
+                <a class="nav-link" href="/dashboard">Личный кабинет</a>
+                <a class="nav-link" href="/incidents">Инциденты</a>
+                <a class="nav-link" href="/incident" data-admin-only="true">Создать инцидент</a>
+                <a class="nav-link" href="/analytics">Аналитика</a>
+                <a class="nav-link" href="/audit" data-admin-only="true">Журнал аудита</a>
+                <a class="nav-link" href="#" id="logout-btn">Выход</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="page-header">
+                <div>
+                    <h1>Журнал аудита</h1>
+                    <p class="muted">Полный список действий пользователей по инцидентам.</p>
+                </div>
+            </div>
+
+            <section class="card">
+                <div class="audit-toolbar">
+                    <input type="text" id="audit-search" placeholder="Поиск по действию, например: закрыл, удалил, комментарий">
+                    
+                    <select id="audit-user-id">
+                        <option value="">Все сотрудники</option>
+                    </select>
+
+                    <button id="audit-apply-btn" type="button">Применить</button>
+                </div>
+
+                <div id="audit-meta" class="muted" style="margin-bottom: 16px;"></div>
+                <div id="audit-list" class="audit-list"></div>
+                <div id="audit-pagination" class="pagination"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -27,6 +27,13 @@ const incidentsState = {
     sort: 'created_desc',
 };
 
+const auditState = {
+    page: 1,
+    limit: 12,
+    search: '',
+    userId: '',
+};
+
 let currentUser = null;
 let analyticsChart = null;
 
@@ -75,7 +82,8 @@ function toDateTimeLocal(value) {
 }
 
 function getStatusLabel(status) {
-    switch (status) {
+    const normalizedStatus = String(status || '').trim().toLowerCase();
+    switch (normalizedStatus) {
         case 'in_progress':
             return 'В работе';
         case 'closed':
@@ -86,8 +94,16 @@ function getStatusLabel(status) {
 }
 
 function getStatusClass(status) {
-    if (status === 'closed') return 'badge-closed';
+    const normalizedStatus = String(status || '').trim().toLowerCase();
+    if (normalizedStatus === 'closed') return 'badge-closed';
     return 'badge-open';
+}
+
+function getIncidentIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const id = Number(params.get('id'));
+    if (!id || Number.isNaN(id)) return null;
+    return id;
 }
 
 function incidentCard(incident, canClose = false) {
@@ -113,30 +129,9 @@ function incidentCard(incident, canClose = false) {
 
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
                 ${canClose && !isClosed ? `<button onclick="changeStatus(${incident.id}, 'closed')">Закрыть инцидент</button>` : ''}
-                <button onclick="toggleIncidentDetails(${incident.id})">История и комментарии</button>
+                <button onclick="window.location.href='/incident-view?id=${incident.id}'">Открыть карточку</button>
                 ${isAdmin && !isClosed ? `<button onclick="window.location.href='/incident?id=${incident.id}'">Редактировать</button>` : ''}
                 ${isAdmin ? `<button onclick="deleteIncident(${incident.id})">Удалить</button>` : ''}
-            </div>
-
-            <div id="details-${incident.id}" class="details-block" style="display:none;">
-                <div>
-                    <strong>История действий</strong>
-                    <div id="history-${incident.id}" class="history-list"></div>
-                </div>
-                <div style="margin-top:16px;">
-                    <strong>Комментарии</strong>
-                    <div id="comments-${incident.id}" class="comments-list"></div>
-                    ${
-                        !isClosed
-                            ? `
-                    <div class="comment-box">
-                        <input type="text" id="comment-input-${incident.id}" placeholder="Введите комментарий (до 100 символов)" maxlength="100">
-                        <button onclick="addComment(${incident.id})">Отправить</button>
-                    </div>
-                    `
-                            : `<div class="muted" style="margin-top:10px;">Для закрытого инцидента комментарии недоступны.</div>`
-                    }
-                </div>
             </div>
         </article>
     `;
@@ -145,7 +140,15 @@ function incidentCard(incident, canClose = false) {
 async function closeIncident(id) {
     try {
         await api.request(`/api/incidents/close?id=${id}`, { method: 'POST' });
-        await Promise.all([loadIncidents(), loadTasks(), loadAnalytics(), loadNotifications(), loadChart()]);
+        await Promise.all([
+            loadIncidents(),
+            loadTasks(),
+            loadAnalytics(),
+            loadNotifications(),
+            loadChart(),
+            loadIncidentView(),
+            loadAuditLog(),
+        ]);
     } catch (error) {
         alert(error.message);
     }
@@ -154,7 +157,15 @@ async function closeIncident(id) {
 async function changeStatus(id, status) {
     try {
         await api.request(`/api/incidents/status?id=${id}&status=${status}`, { method: 'POST' });
-        await Promise.all([loadIncidents(), loadTasks(), loadAnalytics(), loadNotifications(), loadChart()]);
+        await Promise.all([
+            loadIncidents(),
+            loadTasks(),
+            loadAnalytics(),
+            loadNotifications(),
+            loadChart(),
+            loadIncidentView(),
+            loadAuditLog(),
+        ]);
     } catch (error) {
         alert(error.message);
     }
@@ -166,24 +177,22 @@ async function deleteIncident(id) {
 
     try {
         await api.request(`/api/incidents/delete?id=${id}`, { method: 'POST' });
-        await Promise.all([loadIncidents(), loadTasks(), loadAnalytics(), loadNotifications(), loadChart()]);
+
+        if (window.location.pathname === '/incident-view') {
+            window.location.href = '/incidents';
+            return;
+        }
+
+        await Promise.all([
+            loadIncidents(),
+            loadTasks(),
+            loadAnalytics(),
+            loadNotifications(),
+            loadChart(),
+            loadAuditLog(),
+        ]);
     } catch (error) {
         alert(error.message);
-    }
-}
-
-async function toggleIncidentDetails(id) {
-    const details = document.getElementById(`details-${id}`);
-    if (!details) return;
-
-    const isHidden = details.style.display === 'none' || details.style.display === '';
-    details.style.display = isHidden ? 'block' : 'none';
-
-    if (isHidden) {
-        await Promise.all([
-            loadIncidentHistory(id),
-            loadIncidentComments(id),
-        ]);
     }
 }
 
@@ -233,7 +242,7 @@ async function loadIncidentComments(id) {
 }
 
 async function addComment(incidentId) {
-    const input = document.getElementById(`comment-input-${incidentId}`);
+    const input = document.getElementById(`comment-input-${incidentId}`) || document.getElementById('incident-view-comment-input');
     if (!input) return;
 
     const text = input.value.trim();
@@ -257,10 +266,22 @@ async function addComment(incidentId) {
         });
 
         input.value = '';
+
+        if (window.location.pathname === '/incident-view') {
+            await Promise.all([
+                loadIncidentViewComments(incidentId),
+                loadIncidentViewHistory(incidentId),
+                loadNotifications(),
+                loadAuditLog(),
+            ]);
+            return;
+        }
+
         await Promise.all([
             loadIncidentComments(incidentId),
             loadIncidentHistory(incidentId),
             loadNotifications(),
+            loadAuditLog(),
         ]);
     } catch (error) {
         alert(error.message);
@@ -320,7 +341,9 @@ async function handleRegisterForm() {
                 body: JSON.stringify(payload),
             });
             showMessage(message, result.message, 'success');
-            setTimeout(() => { window.location.href = '/login'; }, 1000);
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
         } catch (error) {
             showMessage(message, error.message, 'error');
         }
@@ -570,8 +593,7 @@ async function loadIncidentForEdit() {
     const form = document.getElementById('incident-form');
     if (!form) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
+    const id = getIncidentIdFromUrl();
     if (!id) return;
 
     try {
@@ -686,13 +708,313 @@ async function initIncidentForm(user) {
     });
 }
 
+async function loadIncidentViewHistory(incidentId) {
+    const target = document.getElementById('incident-view-history');
+    if (!target) return;
+
+    try {
+        const history = await api.request(`/api/incidents/history?incident_id=${incidentId}`, { method: 'GET' });
+        if (!history.length) {
+            target.innerHTML = '<div class="empty">История пока пуста.</div>';
+            return;
+        }
+
+        target.innerHTML = history.map((item) => `
+            <div class="history-item">
+                <div><strong>${item.user?.login || 'Пользователь'}</strong> — ${item.action}</div>
+                <div class="muted">${formatDate(item.created_at)}</div>
+            </div>
+        `).join('');
+    } catch (error) {
+        target.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}
+
+async function loadIncidentViewComments(incidentId) {
+    const target = document.getElementById('incident-view-comments');
+    if (!target) return;
+
+    try {
+        const comments = await api.request(`/api/incidents/comments?incident_id=${incidentId}`, { method: 'GET' });
+        if (!comments.length) {
+            target.innerHTML = '<div class="empty">Комментариев пока нет.</div>';
+            return;
+        }
+
+        target.innerHTML = comments.map((item) => `
+            <div class="comment-item">
+                <div><strong>${item.user?.login || 'Пользователь'}</strong></div>
+                <div>${item.text}</div>
+                <div class="muted">${formatDate(item.created_at)}</div>
+            </div>
+        `).join('');
+    } catch (error) {
+        target.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}
+
+async function loadIncidentView() {
+    const target = document.getElementById('incident-view-content');
+    if (!target || window.location.pathname !== '/incident-view') return;
+
+    const incidentId = getIncidentIdFromUrl();
+    if (!incidentId) {
+        target.innerHTML = '<div class="empty">Не указан идентификатор инцидента.</div>';
+        return;
+    }
+
+    try {
+        const response = await api.request(`/api/incidents?id=${incidentId}&page=1&limit=1`, { method: 'GET' });
+        const incident = (response.items || [])[0];
+
+        if (!incident) {
+            target.innerHTML = '<div class="empty">Инцидент не найден.</div>';
+            return;
+        }
+
+        const isClosed = String(incident.status || '').trim().toLowerCase() === 'closed';
+        const isAdmin = currentUser?.role === 'admin';
+        const canClose = currentUser?.role === 'admin' || incident.assigned_to_id === currentUser?.id;
+
+        target.innerHTML = `
+            <h2>${incident.title}</h2>
+            <div style="margin-top: 10px;">
+                <span class="badge ${incident.severity === 'Критическое' ? 'badge-critical' : 'badge-normal'}">${incident.severity}</span>
+                <span class="badge ${getStatusClass(incident.status)}">${getStatusLabel(incident.status)}</span>
+            </div>
+
+            <div class="incident-meta">
+                <div class="incident-meta-row"><strong>Описание:</strong><br>${incident.description}</div>
+                <div class="incident-meta-row"><strong>Дата происшествия:</strong> ${formatDate(incident.occurred_at)}</div>
+                <div class="incident-meta-row"><strong>Ответственный:</strong> ${incident.assigned_to?.login || '—'}</div>
+                <div class="incident-meta-row"><strong>Создал:</strong> ${incident.created_by?.login || '—'}</div>
+                <div class="incident-meta-row"><strong>Дата закрытия:</strong> ${formatDate(incident.closed_at)}</div>
+            </div>
+
+            <div class="incident-actions">
+                ${canClose && !isClosed ? `<button onclick="changeStatus(${incident.id}, 'closed')">Закрыть инцидент</button>` : ''}
+                ${isAdmin && !isClosed ? `<button onclick="window.location.href='/incident?id=${incident.id}'">Редактировать</button>` : ''}
+                ${isAdmin ? `<button onclick="deleteIncident(${incident.id})">Удалить</button>` : ''}
+            </div>
+        `;
+
+        const commentBox = document.getElementById('incident-view-comment-box');
+        if (commentBox) {
+            if (isClosed) {
+                commentBox.innerHTML = `<div class="muted" style="margin-top:12px;">Для закрытого инцидента комментарии недоступны.</div>`;
+            } else {
+                commentBox.innerHTML = `
+                    <div class="comment-box">
+                        <input type="text" id="incident-view-comment-input" maxlength="100" placeholder="Введите комментарий (до 100 символов)">
+                        <button onclick="addComment(${incident.id})">Отправить</button>
+                    </div>
+                `;
+            }
+        }
+
+        await Promise.all([
+            loadIncidentViewHistory(incident.id),
+            loadIncidentViewComments(incident.id),
+        ]);
+    } catch (error) {
+        target.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}
+
+function buildAuditQuery() {
+    const params = new URLSearchParams();
+
+    params.set('page', String(auditState.page));
+    params.set('limit', String(auditState.limit));
+
+    if (auditState.search) params.set('search', auditState.search);
+    if (auditState.userId) params.set('user_id', auditState.userId);
+
+    return `/api/audit?${params.toString()}`;
+}
+
+function renderAuditPagination(meta) {
+    const target = document.getElementById('audit-pagination');
+    if (!target) return;
+
+    const page = meta.page || 1;
+    const totalPages = meta.total_pages || 1;
+
+    target.innerHTML = `
+        <button ${page <= 1 ? 'disabled' : ''} id="audit-prev-page-btn">← Назад</button>
+        <span class="pagination-info">Страница ${page} из ${totalPages}</span>
+        <button ${page >= totalPages ? 'disabled' : ''} id="audit-next-page-btn">Вперёд →</button>
+    `;
+
+    const prevBtn = document.getElementById('audit-prev-page-btn');
+    const nextBtn = document.getElementById('audit-next-page-btn');
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', async () => {
+            if (auditState.page > 1) {
+                auditState.page -= 1;
+                await loadAuditLog();
+            }
+        });
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', async () => {
+            if (auditState.page < totalPages) {
+                auditState.page += 1;
+                await loadAuditLog();
+            }
+        });
+    }
+}
+
+function initAuditFilters() {
+    const searchInput = document.getElementById('audit-search');
+    const userSelect = document.getElementById('audit-user-id');
+    const applyBtn = document.getElementById('audit-apply-btn');
+
+    if (!searchInput || !userSelect || !applyBtn) return;
+
+    applyBtn.addEventListener('click', async () => {
+        auditState.search = searchInput.value.trim();
+        auditState.userId = userSelect.value.trim();
+        auditState.page = 1;
+        await loadAuditLog();
+    });
+
+    searchInput.addEventListener('keydown', async (event) => {
+        if (event.key === 'Enter') {
+            auditState.search = searchInput.value.trim();
+            auditState.userId = userSelect.value.trim();
+            auditState.page = 1;
+            await loadAuditLog();
+        }
+    });
+
+    userSelect.addEventListener('change', async () => {
+        auditState.search = searchInput.value.trim();
+        auditState.userId = userSelect.value.trim();
+        auditState.page = 1;
+        await loadAuditLog();
+    });
+}
+
+async function loadAuditUsers() {
+    const select = document.getElementById('audit-user-id');
+
+    if (!select) {
+        console.error('НЕ НАЙДЕН select audit-user-id');
+        return;
+    }
+
+    try {
+        const users = await api.request('/api/users', { method: 'GET' });
+
+        console.log('USERS FROM API:', users);
+
+        // очищаем
+        select.innerHTML = '';
+
+        // дефолт
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Все сотрудники';
+        select.appendChild(defaultOption);
+
+        users.forEach((user) => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.login} (${user.role})`;
+            select.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error('Ошибка загрузки пользователей:', error);
+    }
+}
+
+async function loadAuditLog() {
+    const list = document.getElementById('audit-list');
+    const meta = document.getElementById('audit-meta');
+    if (!list) return;
+
+    try {
+        const response = await api.request(buildAuditQuery(), { method: 'GET' });
+        const items = response.items || [];
+
+        if (meta) {
+            meta.textContent = `Найдено записей: ${response.total || 0}`;
+        }
+
+        if (!items.length) {
+            list.innerHTML = '<div class="empty">Записи журнала не найдены.</div>';
+            renderAuditPagination(response);
+            return;
+        }
+
+        list.innerHTML = items.map((item) => `
+            <article class="audit-item">
+                <div><strong>${item.user?.login || 'Пользователь'}</strong> — ${item.action}</div>
+                <div class="audit-meta">
+                    <span class="audit-chip">${formatDate(item.created_at)}</span>
+                </div>
+            </article>
+        `).join('');
+
+        renderAuditPagination(response);
+    } catch (error) {
+        list.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}
+
+async function loadPublicFeed() {
+    const target = document.getElementById('public-feed-list');
+    if (!target) return;
+
+    try {
+        const response = await api.request('/api/public-feed', { method: 'GET' });
+        const items = response.items || [];
+
+        if (!items.length) {
+            target.innerHTML = '<div class="empty">Событий пока нет.</div>';
+            return;
+        }
+
+        target.innerHTML = items.map((item) => `
+            <article class="feed-item">
+                <div class="feed-item-top">
+                    <strong>${item.title}</strong>
+                    <span class="muted">${formatDate(item.created_at)}</span>
+                </div>
+                <div>${item.text || 'Без описания'}</div>
+                <div class="feed-badges">
+                    ${item.type ? `<span class="feed-chip">${item.type === 'incident' ? 'Инцидент' : 'Действие'}</span>` : ''}
+                    ${item.severity ? `<span class="feed-chip">${item.severity}</span>` : ''}
+                    ${item.status ? `<span class="feed-chip">${getStatusLabel(item.status)}</span>` : ''}
+                    ${item.incident_id ? `<span class="feed-chip">#${item.incident_id}</span>` : ''}
+                </div>
+            </article>
+        `).join('');
+    } catch (error) {
+        target.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}
+
 async function boot() {
+    await loadPublicFeed();
     await handleRegisterForm();
     await handleLoginForm();
+
+    if (!document.body.classList.contains('private-page')) {
+        return;
+    }
+
     const user = await initDashboardShell();
 
     if (user) {
         initIncidentsFilters();
+        initAuditFilters();
+
         await Promise.all([
             loadAnalytics(),
             loadTasks(),
@@ -700,8 +1022,68 @@ async function boot() {
             loadNotifications(),
             initIncidentForm(user),
             loadChart(),
+            loadIncidentView(),
+            loadAuditUsers(),
+            loadAuditLog(),
+            loadLatestIncidents(),
+            loadCriticalIncidents(),
         ]);
     }
 }
 
 document.addEventListener('DOMContentLoaded', boot);
+
+function compactIncidentCard(incident) {
+    return `
+        <article class="compact-item">
+            <h3>${incident.title}</h3>
+            <div class="muted">${incident.description || 'Без описания'}</div>
+            <div class="compact-item-meta">
+                <span class="compact-chip">${incident.severity}</span>
+                <span class="compact-chip">${getStatusLabel(incident.status)}</span>
+                <span class="compact-chip">${formatDate(incident.occurred_at)}</span>
+            </div>
+            <div style="margin-top: 12px;">
+                <a href="/incident-view?id=${incident.id}">Открыть карточку</a>
+            </div>
+        </article>
+    `;
+}
+
+async function loadLatestIncidents() {
+    const target = document.getElementById('latest-incidents-list');
+    if (!target) return;
+
+    try {
+        const response = await api.request('/api/incidents?page=1&limit=4&sort=created_desc', { method: 'GET' });
+        const items = response.items || [];
+
+        if (!items.length) {
+            target.innerHTML = '<div class="empty">Инцидентов пока нет.</div>';
+            return;
+        }
+
+        target.innerHTML = items.map(compactIncidentCard).join('');
+    } catch (error) {
+        target.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}
+
+async function loadCriticalIncidents() {
+    const target = document.getElementById('critical-incidents-list');
+    if (!target) return;
+
+    try {
+        const response = await api.request('/api/incidents?page=1&limit=4&severity=Критическое&sort=created_desc', { method: 'GET' });
+        const items = response.items || [];
+
+        if (!items.length) {
+            target.innerHTML = '<div class="empty">Критических инцидентов нет.</div>';
+            return;
+        }
+
+        target.innerHTML = items.map(compactIncidentCard).join('');
+    } catch (error) {
+        target.innerHTML = `<div class="empty">${error.message}</div>`;
+    }
+}

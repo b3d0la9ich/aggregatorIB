@@ -25,8 +25,11 @@ func (a *App) Routes() http.Handler {
 	mux.HandleFunc("/dashboard", a.servePage("./static/dashboard.html"))
 	mux.HandleFunc("/incidents", a.servePage("./static/incidents.html"))
 	mux.HandleFunc("/incident", a.servePage("./static/incident.html"))
+	mux.HandleFunc("/incident-view", a.servePage("./static/incident_view.html"))
 	mux.HandleFunc("/analytics", a.servePage("./static/analytics.html"))
+	mux.HandleFunc("/audit", a.servePage("./static/audit.html"))
 
+	mux.HandleFunc("/api/public-feed", a.handlePublicFeed)
 	mux.HandleFunc("/api/register", a.handleRegister)
 	mux.HandleFunc("/api/login", a.handleLogin)
 	mux.HandleFunc("/api/logout", a.handleLogout)
@@ -42,6 +45,7 @@ func (a *App) Routes() http.Handler {
 	mux.HandleFunc("/api/notifications", a.authMiddleware(a.handleNotifications))
 	mux.HandleFunc("/api/analytics", a.authMiddleware(a.handleAnalytics))
 	mux.HandleFunc("/api/tasks", a.authMiddleware(a.handleTasks))
+	mux.HandleFunc("/api/audit", a.authMiddleware(a.adminOnly(a.handleAuditLog)))
 
 	return mux
 }

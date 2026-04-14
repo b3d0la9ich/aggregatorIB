@@ -28,11 +28,11 @@ func (a *App) handleTasks(w http.ResponseWriter, r *http.Request) {
 		query = query.Where("assigned_to_id = ?", claims.UserID)
 	}
 
-	var tasks []db.Incident
-	if err := query.Find(&tasks).Error; err != nil {
+	var incidents []db.Incident
+	if err := query.Find(&incidents).Error; err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "не удалось загрузить задачи"})
 		return
 	}
 
-	writeJSON(w, http.StatusOK, tasks)
+	writeJSON(w, http.StatusOK, incidents)
 }

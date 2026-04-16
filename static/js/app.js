@@ -81,6 +81,21 @@ function toDateTimeLocal(value) {
         .slice(0, 16);
 }
 
+function getTodayDateLocal() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function applyIncidentDateMin() {
+    const input = document.getElementById('occurred_at');
+    if (!input) return;
+
+    input.min = `${getTodayDateLocal()}T00:00`;
+}
+
 function getStatusLabel(status) {
     const normalizedStatus = String(status || '').trim().toLowerCase();
     switch (normalizedStatus) {
@@ -148,6 +163,8 @@ async function closeIncident(id) {
             loadChart(),
             loadIncidentView(),
             loadAuditLog(),
+            loadLatestIncidents(),
+            loadCriticalIncidents(),
         ]);
     } catch (error) {
         alert(error.message);
@@ -165,6 +182,8 @@ async function changeStatus(id, status) {
             loadChart(),
             loadIncidentView(),
             loadAuditLog(),
+            loadLatestIncidents(),
+            loadCriticalIncidents(),
         ]);
     } catch (error) {
         alert(error.message);
@@ -190,6 +209,8 @@ async function deleteIncident(id) {
             loadNotifications(),
             loadChart(),
             loadAuditLog(),
+            loadLatestIncidents(),
+            loadCriticalIncidents(),
         ]);
     } catch (error) {
         alert(error.message);
@@ -648,6 +669,7 @@ async function initIncidentForm(user) {
             });
 
         await loadIncidentForEdit();
+        applyIncidentDateMin();
     } catch (error) {
         showMessage(message, error.message, 'error');
     }
@@ -670,6 +692,20 @@ async function initIncidentForm(user) {
         }
 
         const incidentId = Number(document.getElementById('incident-id').value);
+
+        if (!form.occurred_at.value) {
+            showMessage(message, 'Укажите дату инцидента', 'error');
+            return;
+        }
+
+        const selectedDate = new Date(form.occurred_at.value);
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (selectedDate < startOfToday) {
+            showMessage(message, 'Нельзя указывать дату инцидента раньше сегодняшнего дня', 'error');
+            return;
+        }
 
         const payload = {
             title,

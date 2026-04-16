@@ -88,6 +88,15 @@ func (a *App) createIncident(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	occurredAtLocal := occurredAt.In(now.Location())
+
+	if occurredAtLocal.Before(startOfToday) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "нельзя указывать дату инцидента раньше сегодняшнего дня"})
+		return
+	}
+
 	var assignedUser db.User
 	if err := a.db.First(&assignedUser, req.AssignedToID).Error; err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "назначенный пользователь не найден"})
@@ -265,6 +274,15 @@ func (a *App) handleUpdateIncident(w http.ResponseWriter, r *http.Request) {
 	occurredAt, err := time.Parse(time.RFC3339, req.OccurredAt)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "неверная дата инцидента"})
+		return
+	}
+
+	now := time.Now()
+	startOfToday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	occurredAtLocal := occurredAt.In(now.Location())
+
+	if occurredAtLocal.Before(startOfToday) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "нельзя указывать дату инцидента раньше сегодняшнего дня"})
 		return
 	}
 

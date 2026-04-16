@@ -100,11 +100,11 @@
                 <div id="user-login">user</div>
                 <div id="user-role" class="muted">Пользователь</div>
             </div>
-            <nav class="nav-list">
+                <nav class="nav-list">
                 <a class="nav-link" href="/dashboard">Личный кабинет</a>
                 <a class="nav-link" href="/incidents">Инциденты</a>
                 <a class="nav-link" href="/incident" data-admin-only="true">Создать инцидент</a>
-                <a class="nav-link" href="/analytics">Аналитика</a>
+                <a class="nav-link" href="/analytics" data-admin-only="true">Аналитика</a>
                 <a class="nav-link" href="/audit" data-admin-only="true">Журнал аудита</a>
                 <a class="nav-link" href="#" id="logout-btn">Выход</a>
             </nav>
@@ -144,7 +144,7 @@
                         <h2>Быстрые действия</h2>
                         <div class="quick-actions">
                             <a href="/incidents">Открыть список инцидентов</a>
-                            <a href="/analytics">Перейти в аналитику</a>
+                            <a href="/analytics" data-admin-only="true">Перейти в аналитику</a>
                             <a href="/incident" data-admin-only="true">Создать новый инцидент</a>
                             <a href="/audit" data-admin-only="true">Открыть журнал аудита</a>
                         </div>
